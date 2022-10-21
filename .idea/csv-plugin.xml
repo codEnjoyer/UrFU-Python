@@ -10,13 +10,6 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\1.3 Basic data structures\хуждожественный фильм - snatch\vacancies.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
         <entry key="\1.4 Procedural programming. Concept of a function. Built-in library\test.csv">
           <value>
             <Attribute>
@@ -31,7 +24,28 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\1.5 Elements of a functional programming\test.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\1.5 Elements of a functional programming\vacancies_medium.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\vacancies.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\хуждожественный фильм - snatch\vacancies.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
