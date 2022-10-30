@@ -165,7 +165,7 @@ def print_vacancies(vacs: list, rows_slice: list, user_fields: list) -> None:
     print(table.get_string(start=start, end=end, fields=fields))
 
 
-user_input = {'file_name': 'vacancies_medium.csv', 'rows': input().split(), 'fields': input().split(', ')}
+user_input = {'file_name': '../vacancies_medium.csv', 'rows': input().split(), 'fields': input().split(', ')}
 
 (title, row_vacancies) = csv_reader(user_input['file_name'])
 vacancies = [Vacancy(parse_row_vacancy(row_vacancy)) for row_vacancy in row_vacancies]
