@@ -15,3 +15,4 @@
 ### 3.3 https://contest.yandex.ru/contest/40164/run-report/72402379/
 
 ### 4.1 https://contest.yandex.ru/contest/40164/run-report/72632110/
+### 4.2 https://contest.yandex.ru/contest/40164/run-report/73416884/
