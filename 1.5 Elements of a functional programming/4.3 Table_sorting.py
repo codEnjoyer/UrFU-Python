@@ -2,6 +2,7 @@ from csv import reader as csv_reader
 from re import sub
 from enum import Enum
 from prettytable import PrettyTable, ALL
+from datetime import datetime
 
 
 def custom_quit(msg: str) -> None:
@@ -50,6 +51,22 @@ class Translate(Enum):
                                        'Оклад': 'salary',
                                        'Название региона': 'area_name',
                                        'Дата публикации вакансии': 'published_at'}
+    currency_to_rub: {str, float} = {
+        "Манаты": 35.68,
+        "Белорусские рубли": 23.91,
+        "Евро": 59.90,
+        "Грузинский лари": 21.74,
+        "Киргизский сом": 0.76,
+        "Тенге": 0.13,
+        "Рубли": 1,
+        "Гривны": 1.64,
+        "Доллары": 60.66,
+        "Узбекский сум": 0.0055,
+    }
+    experience_to_int: {str, int} = {"Нет опыта": 0,
+                                     "От 1 года до 3 лет": 2,
+                                     "От 3 до 6 лет": 4,
+                                     "Более 6 лет": 6}
 
     @classmethod
     def translate_list_to_rus(cls, data: list) -> list:
@@ -61,24 +78,47 @@ class Translate(Enum):
 
 
 class UserInput:
+    valid_filter_keys = ["Название", "Навыки", "Опыт работы", "Премиум-вакансия", "Компания", "Оклад",
+                         "Идентификатор валюты оклада", "Название региона", "Дата публикации вакансии"]
+
+    valid_titles = ["Название", "Описание", "Навыки", "Опыт работы", "Премиум-вакансия",
+                    "Компания", "Оклад", "Название региона", "Дата публикации вакансии"]
+
     def __init__(self):
         self.file_name = '../vacancies_medium.csv'  # input('Введите название файла: ')  #
-        self.filter_parameter = UserInput.process_filter_parameter(input('Введите параметр фильтрации: '))
+        self.filter_parameter = input('Введите параметр фильтрации: ')
+        self.sort_parameter = input('Введите параметр сортировки: ')
+        self.is_reverse_sort = input('Обратный порядок сортировки (Да / Нет): ')
         self.rows = input('Введите диапазон вывода: ').split()
         self.fields = input('Введите требуемые столбцы: ').split(', ')
 
-    @staticmethod
-    def process_filter_parameter(row_filter: str) -> str:
-        valid_keys = ["Название", "Навыки", "Опыт работы", "Премиум-вакансия", "Компания", "Оклад",
-                      "Идентификатор валюты оклада", "Название региона", "Дата публикации вакансии"]
+        self.validate_input()
 
+    def validate_input(self):
+        self.filter_parameter = self.process_filter_parameter(self.filter_parameter)
+        self.sort_parameter = self.process_sort_parameter(self.sort_parameter)
+        self.is_reverse_sort = self.process_reverse_sort_parameter(self.is_reverse_sort)
+
+    def process_filter_parameter(self, row_filter: str) -> str:
         if row_filter != "" and ": " not in row_filter:
             custom_quit("Формат ввода некорректен")
 
-        if row_filter != "" and row_filter.split(": ")[0] not in valid_keys:
+        if row_filter != "" and row_filter.split(": ")[0] not in self.valid_filter_keys:
             custom_quit("Параметр поиска некорректен")
 
         return row_filter
+
+    def process_sort_parameter(self, row_sort: str) -> str:
+        if row_sort != "" and row_sort not in self.valid_titles:
+            custom_quit("Параметр сортировки некорректен")
+
+        return row_sort
+
+    @staticmethod
+    def process_reverse_sort_parameter(row_reverse: str) -> bool:
+        if row_reverse not in ["Да", "Нет", ""]:
+            custom_quit("Порядок сортировки задан некорректно")
+        return row_reverse == "Да"
 
 
 class CSV:
@@ -113,17 +153,17 @@ class Vacancy:
     salary_gross: str
     salary_currency: str
     area_name: str
+    date_time_published_at: datetime
     published_at: str
     salary: str
 
     def __init__(self, fields: dict):
         for key, value in fields.items():
-            self.__setattr__(key, Vacancy.get_correct_field(key, value))
+            self.__setattr__(key, self.get_correct_field(key, value))
 
         self.set_salary()
 
-    @staticmethod
-    def get_correct_field(key: str, value: str or list) -> str:
+    def get_correct_field(self, key: str, value: str or list) -> str:
         if key == 'key_skills' and type(value) == list:
             return "\n".join(value)
         elif value in ['True', 'False']:
@@ -133,7 +173,16 @@ class Vacancy:
         elif key in ['salary_from', 'salary_to']:
             return f"{int(float(value)):,}".replace(',', ' ')
         elif key == 'published_at':
-            return '.'.join(reversed(value[:10].split('-')))
+            big, small = value[:19].split('T')
+            year, month, day = big.split('-')
+            hours, minutes, seconds = small.split(':')
+            self.date_time_published_at = datetime(int(year),
+                                                   int(month),
+                                                   int(day),
+                                                   int(hours),
+                                                   int(minutes),
+                                                   int(seconds))
+            return '.'.join([day, month, year])
         else:
             return value
 
@@ -202,13 +251,37 @@ def parse_row_vacancy(row_vacs: list) -> dict:
     return dict(zip(title, map(parse_html, row_vacs)))
 
 
-def get_filtered_vacancies(row_vacs: list, filter_parameter: str) -> list:
+def sort_vacancies(vacs: list, sort_parameter: str, is_reverse_sort: bool) -> list:
+    if sort_parameter == "":
+        return vacs
+    sort_func = None
+    if sort_parameter == "Оклад":
+        sort_func = lambda vacancy: Translate.__getitem__('currency_to_rub').value[vacancy.salary_currency] * (
+                float(vacancy.salary_from.replace(' ', '')) + float(vacancy.salary_to.replace(' ', ''))) // 2
+
+    elif sort_parameter == "Навыки":
+        sort_func = lambda vacancy: len(vacancy.key_skills.split("\n"))
+
+    elif sort_parameter == "Дата публикации вакансии":
+        sort_func = lambda vacancy: vacancy.date_time_published_at
+
+    elif sort_parameter == "Опыт работы":
+        sort_func = lambda vacancy: Translate.__getitem__('experience_to_int').value[vacancy.experience_id]
+
+    else:
+        sort_func = lambda \
+                vacancy: vacancy.__getattribute__(f"{Translate.__getitem__('dict_naming_reverse').value[sort_parameter]}")
+
+    return sorted(vacs, reverse=is_reverse_sort, key=sort_func)
+
+
+def get_vacancies(row_vacs: list, filter_parameter: str, sort_parameter: str, is_reverse_sort: bool) -> list:
     vacs = []
     for row_vac in row_vacs:
         parsed_vac = Vacancy(parse_row_vacancy(row_vac))
         if parsed_vac.pass_filtering(filter_parameter):
             vacs.append(parsed_vac)
-    return vacs
+    return sort_vacancies(vacs, sort_parameter, is_reverse_sort)
 
 
 def print_vacancies(vacs: list, rows_slice: list, user_fields: list) -> None:
@@ -228,5 +301,6 @@ def print_vacancies(vacs: list, rows_slice: list, user_fields: list) -> None:
 u_i = UserInput()
 csv = CSV(u_i.file_name)
 (title, row_vacancies) = csv.title, csv.rows
-vacancies = get_filtered_vacancies(row_vacancies, u_i.filter_parameter)
+vacancies = get_vacancies(row_vacancies, filter_parameter=u_i.filter_parameter,
+                          sort_parameter=u_i.sort_parameter, is_reverse_sort=u_i.is_reverse_sort)
 print_vacancies(vacancies, u_i.rows, u_i.fields)
