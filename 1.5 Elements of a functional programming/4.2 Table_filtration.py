@@ -62,10 +62,10 @@ class Translate(Enum):
 
 class UserInput:
     def __init__(self):
-        self.file_name = '../vacancies_medium.csv'  # input('Введите название файла: ')  #
-        self.filter_parameter = UserInput.process_filter_parameter(input('Введите параметр фильтрации: '))
-        self.rows = input('Введите диапазон вывода: ').split()
-        self.fields = input('Введите требуемые столбцы: ').split(', ')
+        self.file_name = input()
+        self.filter_parameter = UserInput.process_filter_parameter(input())
+        self.rows = input().split()
+        self.fields = input().split(', ')
 
     @staticmethod
     def process_filter_parameter(row_filter: str) -> str:
