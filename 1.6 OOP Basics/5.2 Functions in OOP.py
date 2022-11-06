@@ -63,7 +63,7 @@ class Translator:
         "Узбекский сум": 0.0055,
     }
 
-    def translate(self, key: str, dict_name: str=None) -> str:
+    def translate(self, key: str, dict_name: str = None) -> str:
         if dict_name is not None:
             return self.__getattribute__(dict_name)[key]
         return self.__getattribute__(key)
@@ -72,12 +72,18 @@ class Translator:
         return self.currency_to_rub[currency]
 
 
-class UserInput:
+class UserInterface:
     valid_filter_keys = ["Название", "Навыки", "Опыт работы", "Премиум-вакансия", "Компания", "Оклад",
                          "Идентификатор валюты оклада", "Название региона", "Дата публикации вакансии"]
 
     valid_titles = ["Название", "Описание", "Навыки", "Опыт работы", "Премиум-вакансия",
                     "Компания", "Оклад", "Название региона", "Дата публикации вакансии"]
+    file_name: str
+    filter_parameter: str
+    sort_parameter: str
+    is_reverse_sort: str or bool
+    rows: list
+    fields: list
 
     def __init__(self):
         self.file_name = '../vacancies_medium.csv'  # input('Введите название файла: ')  #
@@ -115,6 +121,19 @@ class UserInput:
             custom_quit("Порядок сортировки задан некорректно")
         return row_reverse == "Да"
 
+    @staticmethod
+    def print_vacancies(vacs: list, rows_slice: list, user_fields: list) -> None:
+        if len(vacs) == 0:
+            custom_quit('Ничего не найдено')
+
+        start = int(rows_slice[0]) - 1 if len(rows_slice) >= 1 else 0
+        end = int(rows_slice[1]) - 1 if len(rows_slice) >= 2 else len(vacs)
+        fields = ['№', *user_fields] if '' not in user_fields else ''
+
+        table = Table()
+        table.configure(title)
+        table.fill(vacs)
+        table.print(start=start, end=end, fields=fields)
 
 class CSV:
     data: csv_reader
@@ -135,6 +154,30 @@ class CSV:
             if len(self.rows) == 0:
                 custom_quit('Нет данных')
 
+
+class Salary:
+    salary_from: str
+    salary_to: str
+    salary_gross: str
+    salary_currency: str
+
+    def set_field(self, key: str, value: str):
+        if key == 'salary_currency':
+            value = translator.translate(value)
+        if key in ['salary_from', 'salary_to']:
+            value = f"{int(float(value)):,}".replace(',', ' ')
+        self.__setattr__(key, value)
+
+    def get_average_in_rur(self) -> float:
+        return translator.translate_currency_to_rub(self.salary_currency) * (float(self.salary_from.replace(' ', '')) +
+                                                                             float(self.salary_to.replace(' ', '')))\
+               // 2
+    def get_string(self) -> str:
+        self.salary_gross = self.salary_gross.replace('False', 'Нет').replace('True', 'Да')
+        s_gross = 'Без вычета налогов' if self.salary_gross == 'Да' else 'С вычетом налогов'
+        return f'{self.salary_from} - {self.salary_to} ({self.salary_currency}) ({s_gross})'
+
+
 class Vacancy:
     name: str
     description: str
@@ -142,33 +185,37 @@ class Vacancy:
     experience_id: str
     premium: str
     employer_name: str
-    salary_from: int or float
-    salary_to: int or float
-    salary_gross: str
-    salary_currency: str
+    salary: Salary
     area_name: str
     date_time_published_at: datetime
     published_at: str
-    salary: str
 
     def __init__(self, fields: dict):
         for key, value in fields.items():
-            self.__setattr__(key, self.get_correct_field(key, value))
-
-        self.set_salary()
+            if not self.check_salary(key, value):
+                self.__setattr__(key, self.get_correct_field(key, value))
 
     def get_field(self, field: str):
+        if field in 'salary':
+            return self.salary.get_string()
         return self.__getattribute__(field)
+
+    def check_salary(self, key: str, value: str) -> bool:
+        is_salary = False
+        if key in ['salary_from', 'salary_to', 'salary_gross', 'salary_currency']:
+            if not hasattr(self, 'salary'):
+                self.salary = Salary()
+            self.salary.set_field(key, value)
+            is_salary = True
+        return is_salary
 
     def get_correct_field(self, key: str, value: str or list) -> str:
         if key == 'key_skills' and type(value) == list:
             return "\n".join(value)
         elif value in ['True', 'False']:
             return value.replace('True', 'Да').replace('False', 'Нет')
-        elif key in ['experience_id', 'salary_currency']:
+        elif key == 'experience_id':
             return translator.translate(value)
-        elif key in ['salary_from', 'salary_to']:
-            return f"{int(float(value)):,}".replace(',', ' ')
         elif key == 'published_at':
             # ms = value[-4:]
             big, small = value[:19].split('T')
@@ -180,19 +227,16 @@ class Vacancy:
         else:
             return value
 
-    def set_salary(self):
-        s_gross = 'Без вычета налогов' if self.salary_gross == 'Да' else 'С вычетом налогов'
-        self.salary = f'{self.salary_from} - {self.salary_to} ({self.salary_currency}) ({s_gross})'
-
     def pass_filtering(self, filter_parameter: str) -> bool:
         if filter_parameter == '':
             return True
 
         f_key, f_value = filter_parameter.split(': ')
         if f_key == 'Оклад':
-            return float(self.salary_from.replace(' ', '')) <= float(f_value) <= float(self.salary_to.replace(' ', ''))
+            return float(self.salary.salary_from.replace(' ', '')) <= float(f_value) <= \
+                   float(self.salary.salary_to.replace(' ', ''))
         elif f_key == 'Идентификатор валюты оклада':
-            return self.salary_currency == f_value
+            return self.salary.salary_currency == f_value
         elif f_key == 'Навыки':
             for skill in f_value.split(", "):
                 if skill not in self.key_skills.split("\n"):
@@ -204,30 +248,48 @@ class Vacancy:
 
 class Table:
     table: PrettyTable
+    # en_fields: list = ['№', 'name', 'description', 'key_skills', 'experience_id', 'premium',
+    #                    'employer_name', 'salary', 'area_name', 'published_at']
+    en_fields: list
+    rus_fields: list
 
     def __init__(self):
         self.table = PrettyTable(hrules=ALL, align='l')
 
-    def set_rus_fields(self, fields: list, skip: list) -> None:
+    def set_fields(self, fields: list) -> None:
+        self.set_en_fields(fields)
+        self.set_rus_fields()
+
+    def set_en_fields(self, fields: list) -> None:
+        skip = ['salary_from', 'salary_to', 'salary_gross', 'salary_currency']
+        if skip is None:
+            skip = []
+        is_salary_set = False
         res = ['№']
         for field in fields:
             if field in skip:
+                if not is_salary_set:
+                    res.append('salary')
+                    is_salary_set = True
                 continue
-            if field == 'salary_currency':
-                field = 'salary'
-            res.append(translator.translate(field))
-        self.table.field_names = res
+            res.append(field)
+        self.en_fields = res
+
+    def set_rus_fields(self):
+        self.rus_fields = ['№']
+        self.rus_fields.extend(translator.translate(f) for f in self.en_fields[1:])
+        self.table.field_names = self.rus_fields
 
     def configure(self, fields: list) -> None:
-        self.set_rus_fields(fields, skip=['salary_from', 'salary_to', 'salary_gross'])
+        self.set_fields(fields)
         self.table.max_width = 20
         self.table.custom_format = (lambda f, v: f"{v}"[:100] + '...' if len(str(v)) > 100 else f"{v}"[:100])
 
     def fill(self, vacs: list):
         for index, vac in enumerate(vacs):
             res = [index + 1]
-            for t in self.table.field_names[1:]:
-                res.append(vac.get_field(translator.translate(t, 'ru_to_en')))
+            for header in self.en_fields[1:]:
+                res.append(vac.get_field(header))
             self.table.add_row(res)
 
     def print(self, start: int, end: int, fields: list, sort_by: str = ''):
@@ -254,8 +316,7 @@ def sort_vacancies(vacs: list, sort_parameter: str, is_reverse_sort: bool) -> li
                                      "Более 6 лет": 3}
     sort_func = None
     if sort_parameter == "Оклад":
-        sort_func = lambda vacancy: translator.translate_currency_to_rub(vacancy.salary_currency) * (
-                float(vacancy.salary_from.replace(' ', '')) + float(vacancy.salary_to.replace(' ', ''))) // 2
+        sort_func = lambda vacancy: vacancy.salary.get_average_in_rur()
 
     elif sort_parameter == "Навыки":
         sort_func = lambda vacancy: len(vacancy.key_skills.split("\n"))
@@ -273,7 +334,8 @@ def sort_vacancies(vacs: list, sort_parameter: str, is_reverse_sort: bool) -> li
     return sorted(vacs, reverse=is_reverse_sort, key=sort_func)
 
 
-def get_vacancies(row_vacs: list, filter_parameter: str, sort_parameter: str, is_reverse_sort: bool) -> list:
+def get_sorted_vacancies(row_vacs: list, filter_parameter: str,
+                         sort_parameter: str, is_reverse_sort: str or bool) -> list:
     vacs = []
     for row_vac in row_vacs:
         parsed_vac = Vacancy(parse_row_vacancy(row_vac))
@@ -282,24 +344,11 @@ def get_vacancies(row_vacs: list, filter_parameter: str, sort_parameter: str, is
     return sort_vacancies(vacs, sort_parameter, is_reverse_sort)
 
 
-def print_vacancies(vacs: list, rows_slice: list, user_fields: list) -> None:
-    if len(vacs) == 0:
-        custom_quit('Ничего не найдено')
-
-    start = int(rows_slice[0]) - 1 if len(rows_slice) >= 1 else 0
-    end = int(rows_slice[1]) - 1 if len(rows_slice) >= 2 else len(vacs)
-    fields = ['№', *user_fields] if '' not in user_fields else ''
-
-    table = Table()
-    table.configure(title)
-    table.fill(vacs)
-    table.print(start=start, end=end, fields=fields)
-
-
-translator = Translator()
-u_i = UserInput()
-csv = CSV(u_i.file_name)
-(title, row_vacancies) = csv.title, csv.rows
-vacancies = get_vacancies(row_vacancies, filter_parameter=u_i.filter_parameter,
-                          sort_parameter=u_i.sort_parameter, is_reverse_sort=u_i.is_reverse_sort)
-print_vacancies(vacancies, u_i.rows, u_i.fields)
+if __name__ == "__main__":
+    translator = Translator()
+    ui = UserInterface()
+    csv = CSV(ui.file_name)
+    title, row_vacancies = csv.title, csv.rows
+    vacancies = get_sorted_vacancies(row_vacancies, filter_parameter=ui.filter_parameter,
+                                     sort_parameter=ui.sort_parameter, is_reverse_sort=ui.is_reverse_sort)
+    ui.print_vacancies(vacancies, ui.rows, ui.fields)
