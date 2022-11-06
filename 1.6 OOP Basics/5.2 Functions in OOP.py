@@ -135,6 +135,7 @@ class UserInterface:
         table.fill(vacs)
         table.print(start=start, end=end, fields=fields)
 
+
 class CSV:
     data: csv_reader
     title: list
@@ -172,6 +173,7 @@ class Salary:
         return translator.translate_currency_to_rub(self.salary_currency) * (float(self.salary_from.replace(' ', '')) +
                                                                              float(self.salary_to.replace(' ', '')))\
                // 2
+
     def get_string(self) -> str:
         self.salary_gross = self.salary_gross.replace('False', 'Нет').replace('True', 'Да')
         s_gross = 'Без вычета налогов' if self.salary_gross == 'Да' else 'С вычетом налогов'
@@ -248,8 +250,6 @@ class Vacancy:
 
 class Table:
     table: PrettyTable
-    # en_fields: list = ['№', 'name', 'description', 'key_skills', 'experience_id', 'premium',
-    #                    'employer_name', 'salary', 'area_name', 'published_at']
     en_fields: list
     rus_fields: list
 
