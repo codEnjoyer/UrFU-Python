@@ -1,6 +1,5 @@
 from csv import reader as csv_reader
 from re import sub
-from enum import Enum
 from prettytable import PrettyTable, ALL
 from datetime import datetime
 
@@ -10,7 +9,7 @@ def custom_quit(msg: str) -> None:
     quit()
 
 
-class Translate(Enum):
+class Translator:
     name: str = 'Название'
     description: str = 'Описание'
     key_skills: str = 'Навыки'
@@ -38,19 +37,19 @@ class Translate(Enum):
     between1And3: str = "От 1 года до 3 лет"
     between3And6: str = "От 3 до 6 лет"
     moreThan6: str = "Более 6 лет"
-    dict_naming_reverse: {str, str} = {'Название': 'name',
-                                       'Описание': 'description',
-                                       'Навыки': 'key_skills',
-                                       'Опыт работы': 'experience_id',
-                                       'Премиум-вакансия': 'premium',
-                                       'Компания': 'employer_name',
-                                       'Нижняя граница вилки оклада': 'salary_from',
-                                       'Верхняя граница вилки оклада': 'salary_to',
-                                       'Оклад указан до вычета налогов': 'salary_gross',
-                                       'Идентификатор валюты оклада': 'salary_currency',
-                                       'Оклад': 'salary',
-                                       'Название региона': 'area_name',
-                                       'Дата публикации вакансии': 'published_at'}
+    ru_to_en: {str, str} = {'Название': 'name',
+                            'Описание': 'description',
+                            'Навыки': 'key_skills',
+                            'Опыт работы': 'experience_id',
+                            'Премиум-вакансия': 'premium',
+                            'Компания': 'employer_name',
+                            'Нижняя граница вилки оклада': 'salary_from',
+                            'Верхняя граница вилки оклада': 'salary_to',
+                            'Оклад указан до вычета налогов': 'salary_gross',
+                            'Идентификатор валюты оклада': 'salary_currency',
+                            'Оклад': 'salary',
+                            'Название региона': 'area_name',
+                            'Дата публикации вакансии': 'published_at'}
     currency_to_rub: {str, float} = {
         "Манаты": 35.68,
         "Белорусские рубли": 23.91,
@@ -63,18 +62,14 @@ class Translate(Enum):
         "Доллары": 60.66,
         "Узбекский сум": 0.0055,
     }
-    experience_to_int: {str, int} = {"Нет опыта": 0,
-                                     "От 1 года до 3 лет": 2,
-                                     "От 3 до 6 лет": 4,
-                                     "Более 6 лет": 6}
 
-    @classmethod
-    def translate_list_to_rus(cls, data: list) -> list:
-        return [cls.__getitem__(name).value for name in data]
+    def translate(self, key: str, dict_name: str=None) -> str:
+        if dict_name is not None:
+            return self.__getattribute__(dict_name)[key]
+        return self.__getattribute__(key)
 
-    @classmethod
-    def translate_list_to_en(cls, data: list, dict_naming: dict) -> list:
-        return [dict_naming[name] for name in data]
+    def translate_currency_to_rub(self, currency: str) -> int or float:
+        return self.currency_to_rub[currency]
 
 
 class UserInput:
@@ -140,7 +135,6 @@ class CSV:
             if len(self.rows) == 0:
                 custom_quit('Нет данных')
 
-
 class Vacancy:
     name: str
     description: str
@@ -163,25 +157,25 @@ class Vacancy:
 
         self.set_salary()
 
+    def get_field(self, field: str):
+        return self.__getattribute__(field)
+
     def get_correct_field(self, key: str, value: str or list) -> str:
         if key == 'key_skills' and type(value) == list:
             return "\n".join(value)
         elif value in ['True', 'False']:
             return value.replace('True', 'Да').replace('False', 'Нет')
         elif key in ['experience_id', 'salary_currency']:
-            return Translate.__getitem__(value).value
+            return translator.translate(value)
         elif key in ['salary_from', 'salary_to']:
             return f"{int(float(value)):,}".replace(',', ' ')
         elif key == 'published_at':
+            # ms = value[-4:]
             big, small = value[:19].split('T')
             year, month, day = big.split('-')
             hours, minutes, seconds = small.split(':')
-            self.date_time_published_at = datetime(int(year),
-                                                   int(month),
-                                                   int(day),
-                                                   int(hours),
-                                                   int(minutes),
-                                                   int(seconds))
+            self.date_time_published_at = datetime(int(year), int(month), int(day),
+                                                   int(hours), int(minutes), int(seconds))
             return '.'.join([day, month, year])
         else:
             return value
@@ -205,7 +199,7 @@ class Vacancy:
                     return False
             return True
         else:
-            return self.__dict__[Translate.__getitem__('dict_naming_reverse').value[f_key]] == f_value
+            return self.get_field(translator.translate(f_key, 'ru_to_en')) == f_value
 
 
 class Table:
@@ -221,7 +215,7 @@ class Table:
                 continue
             if field == 'salary_currency':
                 field = 'salary'
-            res.append(Translate.__getitem__(field).value)
+            res.append(translator.translate(field))
         self.table.field_names = res
 
     def configure(self, fields: list) -> None:
@@ -233,7 +227,7 @@ class Table:
         for index, vac in enumerate(vacs):
             res = [index + 1]
             for t in self.table.field_names[1:]:
-                res.append(vac.__dict__[Translate.__getitem__('dict_naming_reverse').value[t]])
+                res.append(vac.get_field(translator.translate(t, 'ru_to_en')))
             self.table.add_row(res)
 
     def print(self, start: int, end: int, fields: list, sort_by: str = ''):
@@ -254,9 +248,13 @@ def parse_row_vacancy(row_vacs: list) -> dict:
 def sort_vacancies(vacs: list, sort_parameter: str, is_reverse_sort: bool) -> list:
     if sort_parameter == "":
         return vacs
+    experience_to_int: {str, int} = {"Нет опыта": 0,
+                                     "От 1 года до 3 лет": 1,
+                                     "От 3 до 6 лет": 2,
+                                     "Более 6 лет": 3}
     sort_func = None
     if sort_parameter == "Оклад":
-        sort_func = lambda vacancy: Translate.__getitem__('currency_to_rub').value[vacancy.salary_currency] * (
+        sort_func = lambda vacancy: translator.translate_currency_to_rub(vacancy.salary_currency) * (
                 float(vacancy.salary_from.replace(' ', '')) + float(vacancy.salary_to.replace(' ', ''))) // 2
 
     elif sort_parameter == "Навыки":
@@ -266,11 +264,11 @@ def sort_vacancies(vacs: list, sort_parameter: str, is_reverse_sort: bool) -> li
         sort_func = lambda vacancy: vacancy.date_time_published_at
 
     elif sort_parameter == "Опыт работы":
-        sort_func = lambda vacancy: Translate.__getitem__('experience_to_int').value[vacancy.experience_id]
+        sort_func = lambda vacancy: experience_to_int[vacancy.experience_id]
 
     else:
         sort_func = lambda \
-                vacancy: vacancy.__getattribute__(f"{Translate.__getitem__('dict_naming_reverse').value[sort_parameter]}")
+                vacancy: vacancy.get_field(translator.translate(sort_parameter, 'ru_to_en'))
 
     return sorted(vacs, reverse=is_reverse_sort, key=sort_func)
 
@@ -298,6 +296,7 @@ def print_vacancies(vacs: list, rows_slice: list, user_fields: list) -> None:
     table.print(start=start, end=end, fields=fields)
 
 
+translator = Translator()
 u_i = UserInput()
 csv = CSV(u_i.file_name)
 (title, row_vacancies) = csv.title, csv.rows
