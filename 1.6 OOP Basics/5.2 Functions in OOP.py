@@ -171,7 +171,7 @@ class Salary:
 
     def get_average_in_rur(self) -> float:
         return translator.translate_currency_to_rub(self.salary_currency) * (float(self.salary_from.replace(' ', '')) +
-                                                                             float(self.salary_to.replace(' ', '')))\
+                                                                             float(self.salary_to.replace(' ', ''))) \
                // 2
 
     def get_string(self) -> str:
@@ -314,7 +314,6 @@ def sort_vacancies(vacs: list, sort_parameter: str, is_reverse_sort: bool) -> li
                                      "От 1 года до 3 лет": 1,
                                      "От 3 до 6 лет": 2,
                                      "Более 6 лет": 3}
-    sort_func = None
     if sort_parameter == "Оклад":
         sort_func = lambda vacancy: vacancy.salary.get_average_in_rur()
 
