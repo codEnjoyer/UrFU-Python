@@ -8,6 +8,3 @@ if __name__ == '__main__':
 else:
     say_hi("C#")
     print("Как импортируемый")
-
-
-
