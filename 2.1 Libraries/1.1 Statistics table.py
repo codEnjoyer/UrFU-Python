@@ -63,8 +63,8 @@ class UserInterface:
     profession_name: str
 
     def __init__(self):
-        self.file_name = '../vacancies.csv'  # input('Введите название файла: ')
-        self.profession_name = 'Аналитик'  # input('Введите название профессии: ')
+        self.file_name = '../vacancies_by_year.csv'  # input('Введите название файла: ')
+        self.profession_name = 'Программист'  # input('Введите название профессии: ')
 
 
 class CSV:
@@ -258,10 +258,10 @@ class Report:
 
     def generate_excel(self):
         self.fill_with_statistics()
-        self.workbook.save('report.xlsx')
+        self.workbook.save('report2.xlsx')
 
     def fill_with_statistics(self):
-        self.fill_salaries_statistics()
+        # self.fill_salaries_statistics()
         self.fill_cities_statistics()
 
     def fill_salaries_statistics(self):
