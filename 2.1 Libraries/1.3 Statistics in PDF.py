@@ -1,12 +1,11 @@
 from csv import reader as csv_reader
 from re import sub
 from typing import List
-# from openpyxl import Workbook
-# from openpyxl.styles import Font, Border, Side
-# from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00
-# from string import ascii_uppercase
-# import matplotlib.pyplot as plt
-# import numpy as np
+from openpyxl import Workbook
+from openpyxl.styles import Font, Border, Side
+from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00
+import matplotlib.pyplot as plt
+import numpy as np
 from jinja2 import Environment, FileSystemLoader
 import pdfkit
 
@@ -53,9 +52,12 @@ class UserInterface:
     file_name: str
     profession_name: str
 
-    def __init__(self):
-        self.file_name = '../vacancies_by_year.csv'  # input('Введите название файла: ')
-        self.profession_name = 'Программист'  # input('Введите название профессии: ')
+    def __init__(self, file_name: str = None):
+        if file_name is not None:
+            self.file_name = file_name
+        else:
+            self.file_name = "../vacancies.csv"
+        self.profession_name = 'Программист'
 
 
 class CSV:
@@ -155,9 +157,9 @@ class DataSet:
         self.ratio_vacancy_by_cities = {}
         self.city_vacancies_count = {}
 
-        self.get_data()
+        self._get_data()
 
-    def get_data(self) -> None:
+    def _get_data(self) -> None:
         for vac in self.vacancies:
             self.process_vacancies_count('city_vacancies_count', 'area_name', vac)
         for vac in self.vacancies:
@@ -210,29 +212,9 @@ class DataSet:
                 count += 1
         return res
 
-    def get_statistics(self) -> dict:
-        res = {}
-        to_print: {str, dict} \
-            = {"Динамика уровня зарплат по годам: ": self.salary_by_years,
-               "Динамика количества вакансий по годам: ": self.vacancies_by_years,
-               "Динамика уровня зарплат по годам для выбранной профессии: ": self.profession_salary_by_years,
-               "Динамика количества вакансий по годам для выбранной профессии: ": self.profession_vacancies_by_years,
-               "Уровень зарплат по городам (в порядке убывания): ": self.salaries_by_cities,
-               "Доля вакансий по городам (в порядке убывания): ": self.ratio_vacancy_by_cities}
-        for key, value in to_print.items():
-            if len(value) == 0:
-                value = {k: 0 for k in self.salary_by_years.keys()}
-            for k, v in value.items():
-                if type(v) is list:
-                    value[k] = v[0] // v[1]
-            res.update({key: value})
-        return res
-
-    def get_data_for_graphs(self) -> dict:
-        salaries_by_years = []
-        vacancies_by_years = []
-        salaries_by_cities = {}
-        ratio_vacancies_by_cities = {}
+    def get_data(self) -> dict:
+        salaries_by_years, vacancies_by_years = [], []
+        salaries_by_cities, ratio_vacancies_by_cities = {}, {}
         to_print: {str, dict} \
             = {"Уровень зарплат по годам": self.salary_by_years,
                "Количество вакансий по годам": self.vacancies_by_years,
@@ -262,191 +244,199 @@ class DataSet:
 
 
 class Report:
-    # workbook: Workbook
+    workbook: Workbook
     data: dict
-    graph_data: dict
 
     def __init__(self, data: dict, **kwargs):
-        # self.workbook = Workbook()
+        self.workbook = Workbook()
         self.data = data
         for key, value in kwargs.items():
             self.__setattr__(key, value)
 
-    # def generate_excel(self, file_name: str) -> None:
-    #     self.fill_with_statistics()
-    #     self.workbook.save(file_name)
-    #
-    # def fill_with_statistics(self) -> None:
-    #     self.fill_salaries_statistics()
-    #     self.fill_cities_statistics()
-    #
-    # def fill_salaries_statistics(self) -> None:
-    #     ws = self.workbook.active
-    #     ws.title = 'Статистика по годам'
-    #     years = [k for k in list(self.data[0].items())[0][1].keys()]
-    #     self.fill_column('Год', years, [col for col in ws.iter_cols(min_row=1, max_row=17, max_col=1)][0])
-    #     unordered_data = [self.data[0], self.data[2], self.data[1], self.data[3]]
-    #     for column, cust_col in zip(ws.iter_cols(min_row=1, min_col=2, max_col=5, max_row=17), unordered_data):
-    #         t = list(cust_col.items())[0]
-    #         (key, dictionary) = t[0], t[1]
-    #         header = translator.translate(key, "dataset_to_excel")
-    #         actual_values = [v for v in dictionary.values()]
-    #         self.fill_column(header, actual_values, column)
-    #
-    #     self.update_worksheet_settings(ws)
-    #
-    # def fill_cities_statistics(self) -> None:
-    #     self.workbook.create_sheet("Статистика по городам")
-    #     ws = self.workbook["Статистика по городам"]
-    #     a = list(self.data[4].items())[0]
-    #     (first_header, first_dictionary) = translator.translate(a[0], "dataset_to_excel"), a[1]
-    #     first_cities = [k for k in first_dictionary.keys()]
-    #     first_values = [v for v in first_dictionary.values()]
-    #
-    #     self.fill_column('Город', first_cities, [cell[0] for cell in ws['A1':'A11']])
-    #     self.fill_column(first_header, first_values, [cell[0] for cell in ws['B1': 'B11']])
-    #
-    #     b = list(self.data[5].items())[0]
-    #     (second_header, second_dictionary) = translator.translate(b[0], "dataset_to_excel"), b[1]
-    #     second_cities = [k for k in second_dictionary.keys()]
-    #     second_values = [v for v in second_dictionary.values()]
-    #
-    #     self.fill_column('Город', second_cities, [cell[0] for cell in ws['D1':'D11']])
-    #     self.fill_column(second_header, second_values, [cell[0] for cell in ws['E1': 'E11']])
-    #
-    #     self.set_column_percent([cell[0] for cell in ws['E1': 'E11']])
-    #     self.update_worksheet_settings(ws)
-    #
-    # @staticmethod
-    # def fill_column(header: str, data: list, column_cells: list) -> None:
-    #     if '-' in header:
-    #         header += ds.profession_name
-    #     column_cells[0].value = header
-    #     for cell, value in zip(column_cells[1:], data):
-    #         cell.value = value
-    #
-    # @staticmethod
-    # def set_column_percent(column: list) -> None:
-    #     for cell in column:
-    #         cell.number_format = FORMAT_PERCENTAGE_00
-    #
-    # def update_worksheet_settings(self, ws) -> None:
-    #     self.set_borders(ws)
-    #     self.set_column_width(ws)
-    #
-    # @staticmethod
-    # def set_borders(ws) -> None:
-    #     isFirstRow = True
-    #     for row in ws.rows:
-    #         for cell in row:
-    #             if not cell.value:
-    #                 continue
-    #             cell.border = Border(top=Side(border_style="thin", color="000000"),
-    #                                  left=Side(border_style="thin", color="000000"),
-    #                                  right=Side(border_style="thin", color="000000"),
-    #                                  bottom=Side(border_style="thin", color="000000"))
-    #             if isFirstRow:
-    #                 cell.font = Font(bold=True)
-    #         isFirstRow = False
-    #
-    # @staticmethod
-    # def set_column_width(ws) -> None:
-    #     a = {0: "A", 1: "B", 2: "C", 3: "D", 4: "E", 6: "F", 7: "G"}
-    #     dims = {}
-    #     for row in ws.rows:
-    #         for cell in row:
-    #             if cell.value:
-    #                 dims[cell.column] = max((dims.get(cell.column, 0), len(str(cell.value)) + 1))
-    #
-    #     for col, value in dims.items():
-    #         ws.column_dimensions[a[col - 1]].width = value
-    #
-    # def generate_image(self, file_name: str) -> None:
-    #     self.draw_graphs()
-    #     plt.tight_layout()
-    #     plt.savefig(file_name, dpi=300)
-    #     plt.show()
-    #
-    # def draw_graphs(self) -> None:
-    #     figure, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
-    #     self.draw_bar_graph(ax1, "Уровень зарплат по годам")
-    #     self.draw_bar_graph(ax2, "Количество вакансий по годам")
-    #     self.draw_invert_bar_graph(ax3, "Уровень зарплат по городам")
-    #     self.draw_pie_graph(ax4, "Доля вакансий по городам")
-    #
-    # def draw_bar_graph(self, subplot, name: str) -> None:
-    #     bar_width = 0.4
-    #     first_label = 'средняя з/п'
-    #     second_label = f'з/п {ui.profession_name}'
-    #     if name == "Количество вакансий по годам":
-    #         first_label = "Количество вакансий"
-    #         second_label = f"Количество вакансий\n{ui.profession_name}"
-    #
-    #     average_by_years: dict = self.graph_data[name][0]
-    #     profession_average_by_years: dict = self.graph_data[name][1]
-    #
-    #     X_axis = np.arange(len(average_by_years.keys()))
-    #
-    #     subplot.bar(X_axis - bar_width / 2, average_by_years.values(), width=bar_width, label=first_label)
-    #     subplot.bar(X_axis + bar_width / 2, profession_average_by_years.values(),
-    #                 width=bar_width, label=second_label)
-    #     subplot.set_xticks(X_axis, average_by_years.keys())
-    #     subplot.set_xticklabels(average_by_years.keys(), rotation='vertical', va='top', ha='center')
-    #
-    #     subplot.set_title(name)
-    #     subplot.grid(True, axis='y')
-    #     subplot.tick_params(axis='both', labelsize=8)
-    #     subplot.legend(fontsize=8)
-    #
-    # def draw_invert_bar_graph(self, subplot, name: str) -> None:
-    #     subplot.invert_yaxis()
-    #     courses = list(self.graph_data[name].keys())
-    #     courses = [label.replace(' ', '\n').replace('-', '-\n') for label in courses]
-    #     values = list(self.graph_data[name].values())
-    #     subplot.barh(courses, values)
-    #     subplot.set_yticklabels(courses, fontsize=6, va='center', ha='right')
-    #
-    #     subplot.set_title(name)
-    #     subplot.grid(True, axis='x')
-    #     subplot.tick_params(axis='both', labelsize=8)
-    #
-    # def draw_pie_graph(self, subplot, name: str) -> None:
-    #     data = self.graph_data[name]
-    #     other = 1 - sum((list(data.values())))
-    #     new_dic = {'Другие': other}
-    #     new_dic.update(data)
-    #
-    #     labels = list(new_dic.keys())
-    #     sizes = list(new_dic.values())
-    #
-    #     subplot.set_title(name)
-    #     subplot.pie(sizes, labels=labels, textprops={'fontsize': 6})
-    #     subplot.axis('scaled')
+    # region Excel
+    def generate_excel(self, file_name: str) -> None:
+        self.fill_with_statistics()
+        self.workbook.save(file_name)
+
+    def fill_with_statistics(self) -> None:
+        self.fill_salaries_statistics()
+        self.fill_cities_statistics()
+
+    def fill_salaries_statistics(self) -> None:
+        ws = self.workbook.active
+        ws.title = 'Статистика по годам'
+        salaries_by_years = self.data["Уровень зарплат по годам"][0]
+        vacancies_by_years = self.data["Количество вакансий по годам"][0]
+        profession_salaries_by_years = self.data["Уровень зарплат по годам"][1]
+        profession_vacancies_by_years = self.data["Количество вакансий по годам"][1]
+
+        self.fill_column('Год', list(salaries_by_years.keys()),
+                         [cell[0] for cell in ws['A1':f'A{len(salaries_by_years) + 1}']])
+
+        self.fill_column('Средняя зарплата', list(salaries_by_years.values()),
+                         [cell[0] for cell in ws['B1':f'B{len(salaries_by_years) + 1}']])
+        self.fill_column(f'Средняя зарплата - {ds.profession_name}', list(profession_salaries_by_years.values()),
+                         [cell[0] for cell in ws['C1':f'C{len(profession_salaries_by_years) + 1}']])
+
+        self.fill_column('Количество вакансий', list(vacancies_by_years.values()),
+                         [cell[0] for cell in ws['D1':f'D{len(vacancies_by_years) + 1}']])
+        self.fill_column(f'Количество вакансий - {ds.profession_name}', list(profession_vacancies_by_years.values()),
+                         [cell[0] for cell in ws['E1':f'E{len(profession_vacancies_by_years) + 1}']])
+
+        self.update_worksheet_settings(ws)
+
+    def fill_cities_statistics(self) -> None:
+        self.workbook.create_sheet("Статистика по городам")
+        ws = self.workbook["Статистика по городам"]
+        salaries_by_cities = self.data["Уровень зарплат по городам"]
+        vacs_ratio_by_cities = self.data["Доля вакансий по городам"]
+
+        self.fill_column('Город', list(salaries_by_cities.keys()),
+                         [cell[0] for cell in ws['A1':f'A{len(salaries_by_cities) + 1}']])
+        self.fill_column('Уровень зарплат', list(salaries_by_cities.values()),
+                         [cell[0] for cell in ws['B1': f'B{len(salaries_by_cities) + 1}']])
+
+        self.fill_column('Город', list(vacs_ratio_by_cities.keys()),
+                         [cell[0] for cell in ws['D1':f'D{len(vacs_ratio_by_cities) + 1}']])
+        self.fill_column('Доля вакансий', list(vacs_ratio_by_cities.values()),
+                         [cell[0] for cell in ws['E1': f'E{len(vacs_ratio_by_cities) + 1}']])
+
+        self.set_column_percent([cell[0] for cell in ws['E2': f'E{len(vacs_ratio_by_cities) + 1}']])
+        self.update_worksheet_settings(ws)
+
+    @staticmethod
+    def fill_column(header: str, data: list, column_cells: list) -> None:
+        column_cells[0].value = header
+        for cell, value in zip(column_cells[1:], data):
+            cell.value = value
+
+    @staticmethod
+    def set_column_percent(column: list) -> None:
+        for cell in column:
+            cell.number_format = FORMAT_PERCENTAGE_00
+
+    def update_worksheet_settings(self, ws) -> None:
+        self.set_borders(ws)
+        self.set_column_width(ws)
+
+    @staticmethod
+    def set_borders(ws) -> None:
+        isFirstRow = True
+        for row in ws.rows:
+            for cell in row:
+                if not cell.value:
+                    continue
+                cell.border = Border(top=Side(border_style="thin", color="000000"),
+                                     left=Side(border_style="thin", color="000000"),
+                                     right=Side(border_style="thin", color="000000"),
+                                     bottom=Side(border_style="thin", color="000000"))
+                if isFirstRow:
+                    cell.font = Font(bold=True)
+            isFirstRow = False
+
+    @staticmethod
+    def set_column_width(ws) -> None:
+        a = {0: "A", 1: "B", 2: "C", 3: "D", 4: "E", 6: "F", 7: "G"}
+        dims = {}
+        for row in ws.rows:
+            for cell in row:
+                if cell.value:
+                    dims[cell.column] = max((dims.get(cell.column, 0), len(str(cell.value)) + 1))
+
+        for col, value in dims.items():
+            ws.column_dimensions[a[col - 1]].width = value
+
+    # endregion
+    # region Plot
+
+    def generate_image(self, file_name: str, show_result: bool = False) -> None:
+        self.draw_graphs()
+        plt.tight_layout()
+        plt.savefig(file_name, dpi=300)
+        if show_result:
+            plt.show()
+
+    def draw_graphs(self) -> None:
+        figure, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+        self.draw_bar_graph(ax1, "Уровень зарплат по годам")
+        self.draw_bar_graph(ax2, "Количество вакансий по годам")
+        self.draw_invert_bar_graph(ax3, "Уровень зарплат по городам")
+        self.draw_pie_graph(ax4, "Доля вакансий по городам")
+
+    def draw_bar_graph(self, subplot, name: str) -> None:
+        bar_width = 0.4
+        first_label = 'средняя з/п'
+        second_label = f'з/п {ui.profession_name}'
+        if name == "Количество вакансий по годам":
+            first_label = "Количество вакансий"
+            second_label = f"Количество вакансий\n{ui.profession_name}"
+
+        average_by_years: dict = self.data[name][0]
+        profession_average_by_years: dict = self.data[name][1]
+
+        X_axis = np.arange(len(average_by_years.keys()))
+
+        subplot.bar(X_axis - bar_width / 2, average_by_years.values(), width=bar_width, label=first_label)
+        subplot.bar(X_axis + bar_width / 2, profession_average_by_years.values(),
+                    width=bar_width, label=second_label)
+        subplot.set_xticks(X_axis, average_by_years.keys())
+        subplot.set_xticklabels(average_by_years.keys(), rotation='vertical', va='top', ha='center')
+
+        subplot.set_title(name)
+        subplot.grid(True, axis='y')
+        subplot.tick_params(axis='both', labelsize=8)
+        subplot.legend(fontsize=8)
+
+    def draw_invert_bar_graph(self, subplot, name: str) -> None:
+        subplot.invert_yaxis()
+        courses = list(self.data[name].keys())
+        courses = [label.replace(' ', '\n').replace('-', '-\n') for label in courses]
+        values = list(self.data[name].values())
+        subplot.barh(courses, values)
+        subplot.set_yticklabels(courses, fontsize=6, va='center', ha='right')
+
+        subplot.set_title(name)
+        subplot.grid(True, axis='x')
+        subplot.tick_params(axis='both', labelsize=8)
+
+    def draw_pie_graph(self, subplot, name: str) -> None:
+        data = self.data[name]
+        other = 1 - sum((list(data.values())))
+        new_dic = {'Другие': other}
+        new_dic.update(data)
+
+        labels = list(new_dic.keys())
+        sizes = list(new_dic.values())
+
+        subplot.set_title(name)
+        subplot.pie(sizes, labels=labels, textprops={'fontsize': 6})
+        subplot.axis('scaled')
+
+    # endregion
+    # region PDF
 
     def generate_pdf(self, name: str):
-        options = {'enable-local-file-access': None}
         image_file = "graph.png"
-        header_year = ["Год", "Средняя зарплата", f"Средняя зарплата - {ui.profession_name}", "Количество вакансий",
-                       f"Количество вакансий - {ui.profession_name}"]
+        header_year = ["Год", "Средняя зарплата", f"Средняя зарплата - {ds.profession_name}", "Количество вакансий",
+                       f"Количество вакансий - {ds.profession_name}"]
         header_city = ["Город", "Уровень зарплат", '', "Город", "Доля вакансий"]
 
         env = Environment(loader=FileSystemLoader('.'))
         template = env.get_template("pdf_template.html")
 
-        salary_by_years = self.data["Динамика уровня зарплат по годам: "]
-        vacancies_by_years = self.data["Динамика количества вакансий по годам: "]
-        profession_salary_by_years = self.data["Динамика уровня зарплат по годам для выбранной профессии: "]
-        profession_vacancies_by_years = self.data['Динамика количества вакансий по годам для выбранной профессии: ']
-        salaries_by_cities = self.data['Уровень зарплат по городам (в порядке убывания): ']
+        salaries_by_years = self.data["Уровень зарплат по годам"][0]
+        vacancies_by_years = self.data["Количество вакансий по годам"][0]
+        profession_salaries_by_years = self.data["Уровень зарплат по годам"][1]
+        profession_vacancies_by_years = self.data["Количество вакансий по годам"][1]
+        salaries_by_cities = self.data["Уровень зарплат по городам"]
         ratio_vacancy_by_cities = {city: str(f'{ratio * 100:,.2f}%').replace('.', ',')
-                                   for city, ratio in
-                                   self.data["Доля вакансий по городам (в порядке убывания): "].items()}
+                                   for city, ratio in self.data["Доля вакансий по городам"].items()}
 
         salary_data = {year: [salary, count, salary_vac, count_vac]
-                       for year, salary, count, salary_vac, count_vac in zip(salary_by_years.keys(),
-                                                                             salary_by_years.values(),
+                       for year, salary, count, salary_vac, count_vac in zip(salaries_by_years.keys(),
+                                                                             salaries_by_years.values(),
                                                                              vacancies_by_years.values(),
-                                                                             profession_salary_by_years.values(),
+                                                                             profession_salaries_by_years.values(),
                                                                              profession_vacancies_by_years.values())}
         city_data = {index: [salary_city, salary, ratio_city, ratio]
                      for index, (salary_city, salary, ratio_city, ratio) in
@@ -457,21 +447,21 @@ class Report:
 
         pdf_template = template.render(
             {'image_file': image_file,
-             'image_style': 'style="max-width:1024px;max-height:680px"',
+             'image_style': 'style="max-width:1024px; max-height:680px"',
              'salary_data': salary_data,
              'city_data': city_data,
              'header_year': header_year,
              'header_city': header_city,
-             'table_style': "style='padding: 0 20px;border-collapse:collapse'",
              'profession_name': f"{ui.profession_name}",
-             'h1_style': 'style="text-align:center;font-size:32px"',
+             'h1_style': 'style="text-align:center; font-size:32px"',
              'h2_style': 'style="text-align:center"',
              'cell_style_none': "style=''",
-             'cell_style': 'style="border:1px solid black; border-collapse: collapse;font-size: 16px; height: 19pt;'
+             'cell_style': 'style="border:1px solid black; border-collapse: collapse; font-size: 16px; height: 19pt;'
                            'padding: 5px; text-align:center"'})
 
         config = pdfkit.configuration(wkhtmltopdf=r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe')
-        pdfkit.from_string(pdf_template, name, configuration=config, options=options)
+        pdfkit.from_string(pdf_template, name, configuration=config, options={'enable-local-file-access': None})
+    # endregion
 
 
 def parse_html(line: str) -> str:
@@ -486,15 +476,13 @@ def parse_row_vacancy(row_vacs: list) -> dict:
 
 if __name__ == '__main__':
     translator = Translator()
-    ui = UserInterface()
+    ui = UserInterface("../vacancies_by_year.csv")
     csv = CSV(ui.file_name)
     title, row_vacancies = csv.title, csv.rows
     vacancies = [Vacancy(parse_row_vacancy(row_vac)) for row_vac in row_vacancies]
     ds = DataSet(vacancies, ui.profession_name)
-    statistics = ds.get_statistics()
+    statistics = ds.get_data()
     report = Report(statistics)
     # report.generate_excel('report.xlsx')
-    # graph_data = ds.get_data_for_graphs()
-    # report = Report(graph_data=graph_data)
     # report.generate_image('graph.png')
-    report.generate_pdf('report.pdf')
+    # report.generate_pdf('report.pdf')
