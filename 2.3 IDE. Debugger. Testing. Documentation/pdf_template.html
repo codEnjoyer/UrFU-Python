@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Report</title>
+</head>
+<body>
+<font face="Verdana">
+    <h1 {{ h1_style }}>Аналитика по зарплатам и городам для профессии {{ profession_name }}</h1>
+    <img src="file:///C:\Users\user\PycharmProjects\Elearn\2.1 Libraries\{{ image_file }}" {{ image_style }} alt="">
+    <h2 {{ h2_style }}>Статистика по годам</h2>
+    <table {{ table_style }} border="0" cellspacing="0" cellpadding="0">
+        <colgroup>
+            <col style="width: 10%">
+            <col style="width: 15%">
+            <col style="width: 30%">
+            <col style="width: 15%">
+            <col style="width: 30%">
+        </colgroup>
+        <tr>
+            {% for header in header_year %}
+            <th {{ cell_style }}>
+                {{ header }}
+            </th>
+            {% endfor %}
+        </tr>
+        {% for year, (salary, count, salary_vac, count_vac) in salary_data.items() %}
+        <tr>
+            <td {{ cell_style }}>
+                {{ year }}
+            </td>
+            <td {{ cell_style }}>
+                {{ salary }}
+            </td>
+            <td {{ cell_style }}>
+                {{ count }}
+            </td>
+            <td {{ cell_style }}>
+                {{ salary_vac }}
+            </td>
+            <td {{ cell_style }}>
+                {{ count_vac }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    <h2 {{ h2_style }}>Статистика по городам</h2>
+    <table {{ table_style }} border="0" cellspacing="0" cellpadding="0">
+        <colgroup>
+            <col style="width: 20%">
+            <col style="width: 20%">
+            <col style="width: 7%">
+            <col style="width: 20%">
+            <col style="width: 20%">
+        </colgroup>
+        <tr>
+            {% for header in header_city %}
+            <th {% if not header %} {{ cell_style_none }} {% else %} {{ cell_style }} {% endif %}>
+                {{ header }}
+            </th>
+            {% endfor %}
+        </tr>
+        {% for index, (salary_city, salary, ratio_city, ratio) in city_data.items() %}
+        <tr>
+            <td {{ cell_style }}>
+                {{ salary_city }}
+            </td>
+            <td {{ cell_style }}>
+                {{ salary }}
+            </td>
+            <td></td>
+            <td {{ cell_style }} }>
+                {{ ratio_city }}
+            </td>
+            <td {{ cell_style }} }>
+                {{ ratio }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</font>
+</body>
+</html>
