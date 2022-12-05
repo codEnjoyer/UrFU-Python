@@ -719,7 +719,6 @@ def parse_row_vacancy(header: list, row_vacs: list) -> dict:
 
     :param header: список заголовков из CSV-файла.
     :param row_vacs: список строк, прочитанных из CSV-файла.
-    :return:
     """
     return dict(zip(header, map(parse_html, row_vacs)))
 
