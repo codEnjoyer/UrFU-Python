@@ -157,10 +157,13 @@ class Salary:
 
     salary_currency : str
         Валюта оклада на русском языке.
+
+    translator : Translator
+        Переводчик валюты из междунарожного формата на русский язык.
     """
 
-    salary_from: int
-    salary_to: int
+    salary_from: int or float
+    salary_to: int or float
     salary_currency: str
     currency_to_rub: {str, float} = {
         "Манаты": 35.68,
@@ -174,35 +177,37 @@ class Salary:
         "Доллары": 60.66,
         "Узбекский сум": 0.0055,
     }
+    translator: Translator
 
-    def __init__(self, salary_from: float = None, salary_to: float = None, salary_currency: str = None):
+    def __init__(self, salary_from: int or float = None, salary_to: int or float = None, salary_currency: str = None):
         """
         Инициализирует объект Salary, выполняет конвертацию для целочисленных полей.
 
         :param salary_from: Нижняя граница вилки оклада.
         :param salary_to: Верхняя граница вилки оклада.
-        :param salary_currency: Валюта оклада в международном формате.
+        :param salary_currency: Валюта оклада на русском языке во множественном числе.
         """
+
+        self.translator = Translator()
         if salary_from is not None:
-            self.salary_from = int(salary_from)
+            self.salary_from = salary_from
         if salary_to is not None:
-            self.salary_to = int(salary_to)
+            self.salary_to = salary_to
         if salary_currency is not None:
-            self.salary_currency = translator.translate(salary_currency)
+            self.salary_currency = salary_currency
 
     def set_field(self, key: str, value: str) -> None:
         """
         Устанавливает поле зарплаты, значение по ключу.
 
         :param key: Название поля.
-        :param value: Значение поля. Валюта переводится из международного формата на русский язык.
-            Числовые значения приводятся к int.
+        :param value: Значение поля. Валюта на русском языке во множественном числе. Числовые значения приводятся к int.
         """
 
-        if key == 'salary_currency':
-            value = translator.translate(value)
         if key in ['salary_from', 'salary_to']:
             value = float(value)
+        if key == 'salary_currency':
+            value = self.translator.translate(value)
         self.__setattr__(key, value)
 
     def get_average_in_rur(self) -> int:
@@ -211,7 +216,7 @@ class Salary:
 
         :returns: Средняя зарплата в рублях.
         """
-        return self.currency_to_rub[self.salary_currency] * (self.salary_from + self.salary_to) // 2
+        return int(self.currency_to_rub[self.salary_currency] * (self.salary_from + self.salary_to) // 2)
 
 
 class Vacancy:
@@ -817,7 +822,6 @@ def parse_row_vacancy(header: list, row_vacs: list) -> dict:
 
 if __name__ == '__main__':
     doctest.testmod()
-    translator = Translator()
     ui = UserInterface()
     csv = CSV(ui.file_name)
     title, row_vacancies = csv.title, csv.rows
