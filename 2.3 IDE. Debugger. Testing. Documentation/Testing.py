@@ -83,12 +83,12 @@ class UserInterface:
         :param profession_name: Название профессии для сбора статистики. По-умолчанию 'Программист'.
 
         >>> u = UserInterface()
-        >>> u.file_name
+        >>> u.f_name
         '../vacancies_medium.csv'
         >>> u.profession_name
         'Программист'
         >>> i = UserInterface('example.csv')
-        >>> i.file_name
+        >>> i.f_name
         'example.csv'
         >>> x = UserInterface(profession_name='Аналитик')
         >>> x.profession_name

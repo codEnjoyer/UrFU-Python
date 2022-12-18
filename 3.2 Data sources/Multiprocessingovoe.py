@@ -10,6 +10,7 @@ from jinja2 import Environment, FileSystemLoader
 from openpyxl import Workbook
 from openpyxl.styles import Font, Border, Side
 import multiprocessing
+import time
 
 
 def custom_quit(msg: str) -> None:
@@ -910,15 +911,20 @@ def process_csv_file(file_path: os.path, p_name: str):
 
 
 if __name__ == '__main__':
-    # doctest.testmod()
+    start = time.perf_counter()
+
     ui = UserInterface(file_name="vacancies_medium.csv")
     chunks_directory = "csvs_by_years"
-    try:
-        for file_name in os.listdir(chunks_directory):
-            if file_name.endswith(".csv"):
-                process_csv_file(os.path.join(chunks_directory, file_name), ui.profession_name)
-    except:
-        pass
-    # vacancies_fields_dictionaries = [parse_row_vacancy(title, row_vac) for row_vac in row_vacancies]
-    # vacancies_by_years_dictionaries = get_vacancies_by_years(vacancies_fields_dictionaries)
-    # generate_csvs_by_years(vacancies_by_years_dictionaries)
+    processes = []
+
+    for f_name in os.listdir(chunks_directory):
+        if f_name.endswith(".csv"):
+            path_to_file = os.path.join(chunks_directory, f_name)
+            p = multiprocessing.Process(target=process_csv_file, args=(path_to_file, ui.profession_name))
+            p.start()
+            processes.append(p)
+    for process in processes:
+        process.join()
+
+    final = time.perf_counter()
+    print(final - start)
