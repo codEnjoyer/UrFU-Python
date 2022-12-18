@@ -2,7 +2,6 @@ import csv
 from re import sub
 import os
 # from typing import List
-
 # import matplotlib.pyplot as plt
 # import numpy as np
 # import pdfkit
@@ -888,9 +887,10 @@ def generate_csvs_by_years(vacs_by_years_dicts: list) -> None:
 
 if __name__ == '__main__':
     # doctest.testmod()
-    ui = UserInterface(file_name="../vacancies_by_year.csv")
+    ui = UserInterface()
     csv_data = CSV(ui.file_name)
     title, row_vacancies = csv_data.title, csv_data.rows
+    # vacancies = [Vacancy(parse_row_vacancy(title, row_vac)) for row_vac in row_vacancies]
     vacancies_fields_dictionaries = [parse_row_vacancy(title, row_vac) for row_vac in row_vacancies]
     vacancies_by_years_dictionaries = get_vacancies_by_years(vacancies_fields_dictionaries)
     generate_csvs_by_years(vacancies_by_years_dictionaries)
