@@ -2,7 +2,6 @@ import csv
 from re import sub
 import os
 from typing import List
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pdfkit
@@ -10,7 +9,6 @@ import pdfkit
 from jinja2 import Environment, FileSystemLoader
 from openpyxl import Workbook
 from openpyxl.styles import Font, Border, Side
-from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00
 import multiprocessing
 
 
@@ -75,6 +73,7 @@ class UserInterface:
     """
 
     file_name: str
+    directory_name: str
     profession_name: str
 
     def __init__(self, file_name: str = None, profession_name: str = None):
@@ -96,10 +95,12 @@ class UserInterface:
         >>> x.profession_name
         'Аналитик'
         """
+
         if file_name is not None:
             self.file_name = file_name
         else:
-            self.file_name = "../vacancies_medium.csv"
+            self.file_name = f"../vacancies_medium.csv"
+
         if profession_name is not None:
             self.profession_name = profession_name
         else:
@@ -331,12 +332,6 @@ class DataSet:
         Год: средняя зарплата среди вакансий, содержащих в своём названии profession_name, за этот период.
     profession_vacancies_by_years : {int, int}
         Год: количество вакансий, содержащих в своём названии profession_name, за этот период.
-    salaries_by_cities : {str, list}
-        Название города: [сумма всех зарплат вакансий в этом городе, количество вакансий в этом городе].
-    ratio_vacancy_by_cities : {str, float}
-        Название города: доля количества вакансий в этом городе к общему количеству вакансий.
-    city_vacancies_count : {str, int}
-        Название города: количество вакансий в этом городе.
 
     """
 
@@ -505,8 +500,9 @@ class Report:
     """
     workbook: Workbook
     data: dict
+    ds: DataSet
 
-    def __init__(self, data: dict, **kwargs):
+    def __init__(self, data: dict, data_set: DataSet, **kwargs):
         """
         Инициализирует объект Report. Создаёт пустой Workbook, распаковывает kwargs.
 
@@ -514,6 +510,7 @@ class Report:
         """
         self.workbook = Workbook()
         self.data = data
+        self.ds = data_set
         for key, value in kwargs.items():
             self.__setattr__(key, value)
 
@@ -552,12 +549,12 @@ class Report:
 
         self.fill_column('Средняя зарплата', list(salaries_by_years.values()),
                          [cell[0] for cell in ws['B1':f'B{len(salaries_by_years) + 1}']])
-        self.fill_column(f'Средняя зарплата - {ds.profession_name}', list(profession_salaries_by_years.values()),
+        self.fill_column(f'Средняя зарплата - {self.ds.profession_name}', list(profession_salaries_by_years.values()),
                          [cell[0] for cell in ws['C1':f'C{len(profession_salaries_by_years) + 1}']])
 
         self.fill_column('Количество вакансий', list(vacancies_by_years.values()),
                          [cell[0] for cell in ws['D1':f'D{len(vacancies_by_years) + 1}']])
-        self.fill_column(f'Количество вакансий - {ds.profession_name}', list(profession_vacancies_by_years.values()),
+        self.fill_column(f'Количество вакансий - {self.ds.profession_name}', list(profession_vacancies_by_years.values()),
                          [cell[0] for cell in ws['E1':f'E{len(profession_vacancies_by_years) + 1}']])
 
         self.update_worksheet_settings(ws)
@@ -689,10 +686,10 @@ class Report:
         """
         bar_width = 0.4
         first_label = 'средняя з/п'
-        second_label = f'з/п {ui.profession_name}'
+        second_label = f'з/п {self.ds.profession_name}'
         if name == "Количество вакансий по годам":
             first_label = "Количество вакансий"
-            second_label = f"Количество вакансий\n{ui.profession_name}"
+            second_label = f"Количество вакансий\n{self.ds.profession_name}"
 
         average_by_years: dict = self.data[name][0]
         profession_average_by_years: dict = self.data[name][1]
@@ -756,9 +753,9 @@ class Report:
 
         :param name: Название сохраняемого PDF-файла с явно указанным расширением.
         """
-        image_file = "graph.png"
-        header_year = ["Год", "Средняя зарплата", f"Средняя зарплата - {ds.profession_name}", "Количество вакансий",
-                       f"Количество вакансий - {ds.profession_name}"]
+        image_file = os.path.join(os.path.dirname(name), "graph.png")
+        header_year = ["Год", "Средняя зарплата", f"Средняя зарплата - {self.ds.profession_name}", "Количество вакансий",
+                       f"Количество вакансий - {self.ds.profession_name}"]
         # header_city = ["Город", "Уровень зарплат", '', "Город", "Доля вакансий"]
 
         env = Environment(loader=FileSystemLoader('.'))
@@ -793,7 +790,7 @@ class Report:
              # 'city_data': city_data,
              'header_year': header_year,
              # 'header_city': header_city,
-             'profession_name': f"{ui.profession_name}",
+             'profession_name': f"{self.ds.profession_name}",
              'h1_style': 'style="text-align:center; font-size:32px"',
              'h2_style': 'style="text-align:center"',
              'cell_style_none': "style=''",
@@ -892,18 +889,36 @@ def generate_csvs_by_years(vacs_by_years_dicts: list) -> None:
         generate_csv_vacancies(vacs, list(vacs.keys())[0], csvs_directory_name)
 
 
-if __name__ == '__main__':
-    # doctest.testmod()
-    ui = UserInterface(file_name="../vacancies_by_year.csv")
-    csv_data = CSV(ui.file_name)
+def process_csv_file(file_path: os.path, p_name: str):
+    f_name = os.path.basename(file_path)
+    year = f_name.split('.')[0][-4:]
+    csv_directory = file_path.replace(f_name, '')
+    final_path = os.path.join(csv_directory, year)
+
+    if year not in os.listdir(csv_directory):
+        os.mkdir(final_path)
+
+    csv_data = CSV(file_path)
     title, row_vacancies = csv_data.title, csv_data.rows
     vacancies = [Vacancy(parse_row_vacancy(title, row_vac)) for row_vac in row_vacancies]
-    ds = DataSet(vacancies, ui.profession_name)
+    ds = DataSet(vacancies, p_name)
     statistics = ds.get_data()
-    report = Report(statistics)
-    report.generate_excel('report.xlsx')
-    report.generate_image('graph.png')
-    report.generate_pdf('report.pdf')
+    report = Report(statistics, ds)
+    report.generate_excel(f'{final_path}/report.xlsx')
+    report.generate_image(f'{final_path}/graph.png')
+    report.generate_pdf(f'{final_path}/report.pdf')
+
+
+if __name__ == '__main__':
+    # doctest.testmod()
+    ui = UserInterface(file_name="vacancies_medium.csv")
+    chunks_directory = "csvs_by_years"
+    try:
+        for file_name in os.listdir(chunks_directory):
+            if file_name.endswith(".csv"):
+                process_csv_file(os.path.join(chunks_directory, file_name), ui.profession_name)
+    except:
+        pass
     # vacancies_fields_dictionaries = [parse_row_vacancy(title, row_vac) for row_vac in row_vacancies]
     # vacancies_by_years_dictionaries = get_vacancies_by_years(vacancies_fields_dictionaries)
     # generate_csvs_by_years(vacancies_by_years_dictionaries)
