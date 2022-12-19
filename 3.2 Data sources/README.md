@@ -9,3 +9,7 @@ Time before multiprocessing:
 After multiprocessing:
 
 ![img_2.png](img_2.png)
+
+With concurrent futures:
+
+![img_3.png](img_3.png)
