@@ -11,6 +11,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Border, Side
 import multiprocessing
 import time
+from line_profiler_pycharm import profile
 
 
 def custom_quit(msg: str) -> None:
@@ -890,10 +891,11 @@ def generate_csvs_by_years(vacs_by_years_dicts: list) -> None:
         generate_csv_vacancies(vacs, list(vacs.keys())[0], csvs_directory_name)
 
 
+@profile
 def process_csv_file(file_path: os.path, p_name: str):
-    f_name = os.path.basename(file_path)
-    year = f_name.split('.')[0][-4:]
-    csv_directory = file_path.replace(f_name, '')
+    file_name = os.path.basename(file_path)
+    year = file_name.split('.')[0][-4:]
+    csv_directory = file_path.replace(file_name, '')
     final_path = os.path.join(csv_directory, year)
 
     if year not in os.listdir(csv_directory):
@@ -901,9 +903,13 @@ def process_csv_file(file_path: os.path, p_name: str):
 
     csv_data = CSV(file_path)
     title, row_vacancies = csv_data.title, csv_data.rows
-    vacancies = [Vacancy(parse_row_vacancy(title, row_vac)) for row_vac in row_vacancies]
+
+    parsed = [parse_row_vacancy(title, row_vac) for row_vac in row_vacancies]
+    vacancies = list(map(Vacancy, parsed))
+
     ds = DataSet(vacancies, p_name)
     statistics = ds.get_data()
+
     report = Report(statistics, ds)
     report.generate_excel(f'{final_path}/report.xlsx')
     report.generate_image(f'{final_path}/graph.png')
@@ -913,16 +919,16 @@ def process_csv_file(file_path: os.path, p_name: str):
 if __name__ == '__main__':
     start = time.perf_counter()
 
-    ui = UserInterface(file_name="vacancies_medium.csv")
+    ui = UserInterface()
     chunks_directory = "csvs_by_years"
     processes = []
 
-    for f_name in os.listdir(chunks_directory):
-        if f_name.endswith(".csv"):
-            path_to_file = os.path.join(chunks_directory, f_name)
-            p = multiprocessing.Process(target=process_csv_file, args=(path_to_file, ui.profession_name))
-            p.start()
-            processes.append(p)
+    for f_name in filter(lambda name: name.endswith(".csv"), os.listdir(chunks_directory)):
+        path_to_file = os.path.join(chunks_directory, f_name)
+        p = multiprocessing.Process(target=process_csv_file, args=(path_to_file, ui.profession_name))
+        p.start()
+        processes.append(p)
+
     for process in processes:
         process.join()
 

@@ -248,7 +248,7 @@ class Vacancy:
         area_name, published_at
 
         >>> v = Vacancy({"name": 'Программист'})
-        >>> v.name
+        >>> v.t
         'Программист'
         >>> hasattr(v, 'area_name')
         False

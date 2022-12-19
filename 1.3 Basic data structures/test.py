@@ -95,7 +95,7 @@ def print_salaries(vacancies: list, key: str) -> None:
     for index, vac in enumerate(vacancies):
         if index == 10:
             break
-        print(f'    {index + 1}) {vac.name} в компании "{vac.employer_name}"'
+        print(f'    {index + 1}) {vac.t} в компании "{vac.employer_name}"'
               f' - {vac.average_salary} {decline_word(vac.average_salary, "рубли")} (г. {vac.area_name})')
     print()
 
