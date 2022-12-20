@@ -83,12 +83,12 @@ class UserInterface:
         :param profession_name: Название профессии для сбора статистики. По-умолчанию 'Программист'.
 
         >>> u = UserInterface()
-        >>> u.f_name
+        >>> u.file_name
         '../vacancies_medium.csv'
         >>> u.profession_name
         'Программист'
         >>> i = UserInterface('example.csv')
-        >>> i.f_name
+        >>> i.file_name
         'example.csv'
         >>> x = UserInterface(profession_name='Аналитик')
         >>> x.profession_name
@@ -248,7 +248,7 @@ class Vacancy:
         area_name, published_at
 
         >>> v = Vacancy({"name": 'Программист'})
-        >>> v.t
+        >>> v.name
         'Программист'
         >>> hasattr(v, 'area_name')
         False
