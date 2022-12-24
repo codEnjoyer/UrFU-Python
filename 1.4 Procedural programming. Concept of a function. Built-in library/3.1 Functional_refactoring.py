@@ -23,10 +23,6 @@ class Vacancy:
         for key, value in fields.items():
             self.__setattr__(key, reformat_field(key, value))
 
-        if hasattr(self, 'salary_from') and hasattr(self, 'salary_to'):
-            self.salary_to = float(self.salary_to)
-            self.salary_from = float(self.salary_from)
-
 
 def csv_reader(file_name: str) -> (list, list):
     with open(file_name, 'r', newline='', encoding='utf-8-sig') as file:
@@ -51,7 +47,7 @@ def print_vacancies(vacancies: list, dict_naming: dict) -> None:
         print()
 
 
-(title, row_vacancies) = csv_reader('vacancies_medium.csv')
+(title, row_vacancies) = csv_reader(input())
 vacancies = [Vacancy(parse_row_vacancy(row_vacancy)) for row_vacancy in row_vacancies]
 dict_naming: (str, str) = {'name': 'Название',
                            'description': 'Описание',

@@ -4,12 +4,31 @@ from prettytable import PrettyTable, ALL
 from datetime import datetime
 
 
-def custom_quit(msg: str) -> None:
-    print(msg)
+def exit_with_message(consolnoe_soobchenie: str) -> None:
+    print(consolnoe_soobchenie)
     quit()
 
 
-class Translator:
+class CSV:
+    danniye: csv_reader
+    title: list
+    rows: list
+
+    def __init__(self, file_name: str):
+        with open(file_name, 'r', newline='', encoding='utf-8-sig') as filovoe:
+            self.danniye = csv_reader(filovoe)
+            try:
+                self.title = next(self.danniye)
+            except StopIteration:
+                exit_with_message('Пустой файл')
+
+            self.rows = [row for row in self.danniye if len(list(filter(lambda word: word != '', row))) == len(self.title)]
+
+            if len(self.rows) == 0:
+                exit_with_message('Нет данных')
+
+
+class Perevodchik:
     name: str = 'Название'
     description: str = 'Описание'
     key_skills: str = 'Навыки'
@@ -63,100 +82,80 @@ class Translator:
         "Узбекский сум": 0.0055,
     }
 
-    def translate(self, key: str, dict_name: str = None) -> str:
+    def perevesti(self, key: str, dict_name: str = None) -> str:
         if dict_name is not None:
             return self.__getattribute__(dict_name)[key]
         return self.__getattribute__(key)
 
-    def translate_currency_to_rub(self, currency: str) -> int or float:
+    def perevesti_iz_valuty_v_rur(self, currency: str) -> int or float:
         return self.currency_to_rub[currency]
 
 
-class UserInterface:
+class UI:
     valid_filter_keys = ["Название", "Навыки", "Опыт работы", "Премиум-вакансия", "Компания", "Оклад",
                          "Идентификатор валюты оклада", "Название региона", "Дата публикации вакансии"]
 
     valid_titles = ["Название", "Описание", "Навыки", "Опыт работы", "Премиум-вакансия",
                     "Компания", "Оклад", "Название региона", "Дата публикации вакансии"]
     file_name: str
-    filter_parameter: str
-    sort_parameter: str
-    is_reverse_sort: str or bool
+    how_to_filter: str
+    how_to_sort: str
+    do_reverse: str or bool
     rows: list
     fields: list
 
     def __init__(self):
         self.file_name = '../vacancies_medium.csv'  # input('Введите название файла: ')  #
-        self.filter_parameter = input('Введите параметр фильтрации: ')
-        self.sort_parameter = input('Введите параметр сортировки: ')
-        self.is_reverse_sort = input('Обратный порядок сортировки (Да / Нет): ')
+        self.how_to_filter = input('Введите параметр фильтрации: ')
+        self.how_to_sort = input('Введите параметр сортировки: ')
+        self.do_reverse = input('Обратный порядок сортировки (Да / Нет): ')
         self.rows = input('Введите диапазон вывода: ').split()
         self.fields = input('Введите требуемые столбцы: ').split(', ')
 
-        self.validate_input()
+        self._validate_input()
 
-    def validate_input(self):
-        self.filter_parameter = self.process_filter_parameter(self.filter_parameter)
-        self.sort_parameter = self.process_sort_parameter(self.sort_parameter)
-        self.is_reverse_sort = self.process_reverse_sort_parameter(self.is_reverse_sort)
+    def _validate_input(self):
+        self.how_to_filter = self._process_filter_parameter(self.how_to_filter)
+        self.how_to_sort = self._process_sort_parameter(self.how_to_sort)
+        self.do_reverse = self._process_reverse_sort_parameter(self.do_reverse)
 
-    def process_filter_parameter(self, row_filter: str) -> str:
+    def _process_filter_parameter(self, row_filter: str) -> str:
         if row_filter != "" and ": " not in row_filter:
-            custom_quit("Формат ввода некорректен")
+            exit_with_message("Формат ввода некорректен")
 
         if row_filter != "" and row_filter.split(": ")[0] not in self.valid_filter_keys:
-            custom_quit("Параметр поиска некорректен")
+            exit_with_message("Параметр поиска некорректен")
 
         return row_filter
 
-    def process_sort_parameter(self, row_sort: str) -> str:
+    def _process_sort_parameter(self, row_sort: str) -> str:
         if row_sort != "" and row_sort not in self.valid_titles:
-            custom_quit("Параметр сортировки некорректен")
+            exit_with_message("Параметр сортировки некорректен")
 
         return row_sort
 
     @staticmethod
-    def process_reverse_sort_parameter(row_reverse: str) -> bool:
+    def _process_reverse_sort_parameter(row_reverse: str) -> bool:
         if row_reverse not in ["Да", "Нет", ""]:
-            custom_quit("Порядок сортировки задан некорректно")
+            exit_with_message("Порядок сортировки задан некорректно")
         return row_reverse == "Да"
 
     @staticmethod
     def print_vacancies(vacs: list, rows_slice: list, user_fields: list) -> None:
         if len(vacs) == 0:
-            custom_quit('Ничего не найдено')
+            exit_with_message('Ничего не найдено')
 
         start = int(rows_slice[0]) - 1 if len(rows_slice) >= 1 else 0
         end = int(rows_slice[1]) - 1 if len(rows_slice) >= 2 else len(vacs)
         fields = ['№', *user_fields] if '' not in user_fields else ''
 
-        table = Table()
-        table.configure(title)
-        table.fill(vacs)
-        table.print(start=start, end=end, fields=fields)
+        tablitca = Tablitca()
+        tablitca.nastroit(title)
+        tablitca.zapolnit(vacs)
+        tablitca.print(start=start, end=end, fields=fields)
 
 
-class CSV:
-    data: csv_reader
-    title: list
-    rows: list
-
-    def __init__(self, file_name: str):
-        with open(file_name, 'r', newline='', encoding='utf-8-sig') as file:
-            self.data = csv_reader(file)
-            try:
-                self.title = next(self.data)
-            except StopIteration:
-                custom_quit('Пустой файл')
-
-            self.rows = [row for row in self.data
-                         if len(list(filter(lambda word: word != '', row))) == len(self.title)]
-
-            if len(self.rows) == 0:
-                custom_quit('Нет данных')
-
-
-class Salary:
+class Jopa:
     salary_from: str
     salary_to: str
     salary_gross: str
@@ -164,15 +163,15 @@ class Salary:
 
     def set_field(self, key: str, value: str):
         if key == 'salary_currency':
-            value = translator.translate(value)
+            value = perevozchik.perevesti(value)
         if key in ['salary_from', 'salary_to']:
             value = f"{int(float(value)):,}".replace(',', ' ')
         self.__setattr__(key, value)
 
     def get_average_in_rur(self) -> float:
-        return translator.translate_currency_to_rub(self.salary_currency) * (float(self.salary_from.replace(' ', '')) +
-                                                                             float(self.salary_to.replace(' ', ''))) \
-               // 2
+        return perevozchik.perevesti_iz_valuty_v_rur(self.salary_currency) * (float(self.salary_from.replace(' ', '')) +
+                                                                              float(self.salary_to.replace(' ', ''))) \
+            // 2
 
     def get_string(self) -> str:
         self.salary_gross = self.salary_gross.replace('False', 'Нет').replace('True', 'Да')
@@ -180,44 +179,44 @@ class Salary:
         return f'{self.salary_from} - {self.salary_to} ({self.salary_currency}) ({s_gross})'
 
 
-class Vacancy:
+class Wakansiya:
     name: str
     description: str
     key_skills: str or list
     experience_id: str
     premium: str
     employer_name: str
-    salary: Salary
+    salary: Jopa
     area_name: str
     date_time_published_at: datetime
     published_at: str
 
     def __init__(self, fields: dict):
         for key, value in fields.items():
-            if not self.check_salary(key, value):
-                self.__setattr__(key, self.get_correct_field(key, value))
+            if not self._check_salary(key, value):
+                self.__setattr__(key, self._get_correct_field(key, value))
 
     def get_field(self, field: str):
         if field in 'salary':
             return self.salary.get_string()
         return self.__getattribute__(field)
 
-    def check_salary(self, key: str, value: str) -> bool:
+    def _check_salary(self, key: str, value: str) -> bool:
         is_salary = False
         if key in ['salary_from', 'salary_to', 'salary_gross', 'salary_currency']:
             if not hasattr(self, 'salary'):
-                self.salary = Salary()
+                self.salary = Jopa()
             self.salary.set_field(key, value)
             is_salary = True
         return is_salary
 
-    def get_correct_field(self, key: str, value: str or list) -> str:
+    def _get_correct_field(self, key: str, value: str or list) -> str:
         if key == 'key_skills' and type(value) == list:
             return "\n".join(value)
         elif value in ['True', 'False']:
             return value.replace('True', 'Да').replace('False', 'Нет')
         elif key == 'experience_id':
-            return translator.translate(value)
+            return perevozchik.perevesti(value)
         elif key == 'published_at':
             # ms = value[-4:]
             big, small = value[:19].split('T')
@@ -229,14 +228,14 @@ class Vacancy:
         else:
             return value
 
-    def pass_filtering(self, filter_parameter: str) -> bool:
+    def proyti_filtraciyu(self, filter_parameter: str) -> bool:
         if filter_parameter == '':
             return True
 
         f_key, f_value = filter_parameter.split(': ')
         if f_key == 'Оклад':
             return float(self.salary.salary_from.replace(' ', '')) <= float(f_value) <= \
-                   float(self.salary.salary_to.replace(' ', ''))
+                float(self.salary.salary_to.replace(' ', ''))
         elif f_key == 'Идентификатор валюты оклада':
             return self.salary.salary_currency == f_value
         elif f_key == 'Навыки':
@@ -245,72 +244,73 @@ class Vacancy:
                     return False
             return True
         else:
-            return self.get_field(translator.translate(f_key, 'ru_to_en')) == f_value
+            return self.get_field(perevozchik.perevesti(f_key, 'ru_to_en')) == f_value
 
 
-class Table:
-    table: PrettyTable
+class Tablitca:
+    tablitca: PrettyTable
     en_fields: list
     rus_fields: list
 
     def __init__(self):
-        self.table = PrettyTable(hrules=ALL, align='l')
+        self.tablitca = PrettyTable(hrules=ALL, align='l')
 
-    def set_fields(self, fields: list) -> None:
-        self.set_en_fields(fields)
-        self.set_rus_fields()
+    def _set_fields(self, fields: list) -> None:
+        self._set_en_fields(fields)
+        self._set_rus_fields()
 
-    def set_en_fields(self, fields: list) -> None:
-        skip = ['salary_from', 'salary_to', 'salary_gross', 'salary_currency']
-        if skip is None:
-            skip = []
-        is_salary_set = False
-        res = ['№']
+    def _set_en_fields(self, fields: list) -> None:
+        fields_to_skip = ['salary_from', 'salary_to', 'salary_gross', 'salary_currency']
+        if fields_to_skip is None:
+            fields_to_skip = []
+
+        est_zarplata = False
+        resultat = ['№']
         for field in fields:
-            if field in skip:
-                if not is_salary_set:
-                    res.append('salary')
-                    is_salary_set = True
+            if field in fields_to_skip:
+                if not est_zarplata:
+                    resultat.append('salary')
+                    est_zarplata = True
                 continue
-            res.append(field)
-        self.en_fields = res
+            resultat.append(field)
+        self.en_fields = resultat
 
-    def set_rus_fields(self):
+    def _set_rus_fields(self):
         self.rus_fields = ['№']
-        self.rus_fields.extend(translator.translate(f) for f in self.en_fields[1:])
-        self.table.field_names = self.rus_fields
+        self.rus_fields.extend(perevozchik.perevesti(f) for f in self.en_fields[1:])
+        self.tablitca.field_names = self.rus_fields
 
-    def configure(self, fields: list) -> None:
-        self.set_fields(fields)
-        self.table.max_width = 20
-        self.table.custom_format = (lambda f, v: f"{v}"[:100] + '...' if len(str(v)) > 100 else f"{v}"[:100])
+    def nastroit(self, fields: list) -> None:
+        self._set_fields(fields)
+        self.tablitca.max_width = 20
+        self.tablitca.custom_format = (lambda f, v: f"{v}"[:100] + '...' if len(str(v)) > 100 else f"{v}"[:100])
 
-    def fill(self, vacs: list):
-        for index, vac in enumerate(vacs):
+    def zapolnit(self, proffesii: list):
+        for index, vac in enumerate(proffesii):
             res = [index + 1]
-            for header in self.en_fields[1:]:
-                res.append(vac.get_field(header))
-            self.table.add_row(res)
+            for golovnyak in self.en_fields[1:]:
+                res.append(vac.get_field(golovnyak))
+            self.tablitca.add_row(res)
 
     def print(self, start: int, end: int, fields: list, sort_by: str = ''):
-        print(self.table.get_string(start=start, end=end, fields=fields, sort_by=sort_by))
+        print(self.tablitca.get_string(start=start, end=end, fields=fields, sort_by=sort_by))
 
 
-def parse_html(line: str) -> str:
-    line = sub('<.*?>', '', line)
-    line = line.replace("\r\n", "\n")
-    res = [' '.join(word.split()) for word in line.split('\n')]
-    return res[0] if len(res) == 1 else res  # Спасибо Яндекс.Контесту за еще один костыль!
+def parse_html(liniya: str) -> str:
+    liniya = sub('<.*?>', '', liniya)
+    liniya = liniya.replace("\r\n", "\n")
+    r = [' '.join(slovo.split()) for slovo in liniya.split('\n')]
+    return r[0] if len(r) == 1 else r  # Спасибо Яндекс.Контесту за еще один костыль!
 
 
 def parse_row_vacancy(row_vacs: list) -> dict:
     return dict(zip(title, map(parse_html, row_vacs)))
 
 
-def sort_vacancies(vacs: list, sort_parameter: str, is_reverse_sort: bool) -> list:
+def sortirovat(professssii: list, sort_parameter: str, is_reverse_sort: bool) -> list:
     if sort_parameter == "":
-        return vacs
-    experience_to_int: {str, int} = {"Нет опыта": 0,
+        return professssii
+    chtoto_vo_chtoto: {str, int} = {"Нет опыта": 0,
                                      "От 1 года до 3 лет": 1,
                                      "От 3 до 6 лет": 2,
                                      "Более 6 лет": 3}
@@ -324,30 +324,28 @@ def sort_vacancies(vacs: list, sort_parameter: str, is_reverse_sort: bool) -> li
         sort_func = lambda vacancy: vacancy.date_time_published_at
 
     elif sort_parameter == "Опыт работы":
-        sort_func = lambda vacancy: experience_to_int[vacancy.experience_id]
+        sort_func = lambda vacancy: chtoto_vo_chtoto[vacancy.experience_id]
 
     else:
         sort_func = lambda \
-                vacancy: vacancy.get_field(translator.translate(sort_parameter, 'ru_to_en'))
+                vacancy: vacancy.get_field(perevozchik.perevesti(sort_parameter, 'ru_to_en'))
 
-    return sorted(vacs, reverse=is_reverse_sort, key=sort_func)
+    return sorted(professssii, reverse=is_reverse_sort, key=sort_func)
 
 
-def get_sorted_vacancies(row_vacs: list, filter_parameter: str,
-                         sort_parameter: str, is_reverse_sort: str or bool) -> list:
-    vacs = []
-    for row_vac in row_vacs:
-        parsed_vac = Vacancy(parse_row_vacancy(row_vac))
-        if parsed_vac.pass_filtering(filter_parameter):
-            vacs.append(parsed_vac)
-    return sort_vacancies(vacs, sort_parameter, is_reverse_sort)
+def get_sorted_vacancies(siyryie_profffesiy: list, how_to_filter: str, how_to_start: str, do_reverse: str or bool) -> list:
+    v = []
+    for row_vac in siyryie_profffesiy:
+        razobrannaya_proffesssi = Wakansiya(parse_row_vacancy(row_vac))
+        if razobrannaya_proffesssi.proyti_filtraciyu(how_to_filter):
+            v.append(razobrannaya_proffesssi)
+    return sortirovat(v, how_to_start, do_reverse)
 
 
 if __name__ == "__main__":
-    translator = Translator()
-    ui = UserInterface()
-    csv = CSV(ui.file_name)
-    title, row_vacancies = csv.title, csv.rows
-    vacancies = get_sorted_vacancies(row_vacancies, filter_parameter=ui.filter_parameter,
-                                     sort_parameter=ui.sort_parameter, is_reverse_sort=ui.is_reverse_sort)
-    ui.print_vacancies(vacancies, ui.rows, ui.fields)
+    perevozchik = Perevodchik()
+    antplagiat_govno = UI()
+    etot_kod_refactorili = CSV(antplagiat_govno.file_name)
+    title, row_vacancies = etot_kod_refactorili.title, etot_kod_refactorili.rows
+    ya_tolko_nazvaniya_pomenyal = get_sorted_vacancies(row_vacancies, how_to_filter=antplagiat_govno.how_to_filter, how_to_start=antplagiat_govno.how_to_sort, do_reverse=antplagiat_govno.do_reverse)
+    antplagiat_govno.print_vacancies(ya_tolko_nazvaniya_pomenyal, antplagiat_govno.rows, antplagiat_govno.fields)
