@@ -1,0 +1,1 @@
+![More_than_5000_vacancies.png](More_than_5000_vacancies.png)
