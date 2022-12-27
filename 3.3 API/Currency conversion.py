@@ -46,7 +46,7 @@ def count_salary(df: pd.DataFrame) -> list:
     """
 
     res = []
-    currencies = pd.read_csv("currencies_rates.csv")
+    currencies = pd.read_csv("../currencies_rates.csv")
     for row in df.itertuples(index=False, name="Vacancy"):
         # print(row.salary_from)
         salary = get_processed_salary(row, currencies)

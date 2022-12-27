@@ -131,4 +131,4 @@ def save_currencies_rates_csv(file_name: str, date_range: tuple, relevant_curren
 
 
 if __name__ == "__main__":
-    save_currencies_rates_csv("currencies_rates.csv", get_date_range(), get_relevant_currencies())
+    save_currencies_rates_csv("../currencies_rates.csv", get_date_range(), get_relevant_currencies())
