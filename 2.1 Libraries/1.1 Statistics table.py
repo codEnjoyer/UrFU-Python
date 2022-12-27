@@ -261,7 +261,7 @@ class Report:
         self.workbook.save('report2.xlsx')
 
     def fill_with_statistics(self):
-        # self.fill_salaries_statistics()
+        self.fill_salaries_statistics()
         self.fill_cities_statistics()
 
     def fill_salaries_statistics(self):
