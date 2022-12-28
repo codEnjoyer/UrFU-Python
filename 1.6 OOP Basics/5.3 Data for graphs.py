@@ -47,8 +47,8 @@ class UserInterface:
     profession_name: str
 
     def __init__(self):
-        self.file_name = '../vacancies.csv'  # input('Введите название файла: ')
-        self.profession_name = 'wertyuiop'  # input('Введите название профессии: ')
+        self.file_name = '../vacancies_medium.csv'  # input('Введите название файла: ')
+        self.profession_name = 'Программист'  # input('Введите название профессии: ')
 
 
 class CSV:

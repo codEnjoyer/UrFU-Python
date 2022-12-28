@@ -73,10 +73,10 @@ def join_salary_columns(df: pd.DataFrame, salary_values: list) -> pd.DataFrame:
 
 
 def main() -> None:
-    df = pd.read_csv("../vacancies_dif_currencies.csv")
+    df = pd.read_csv("hh_ru.csv")
     salary_values = count_salary(df)
     df = join_salary_columns(df, salary_values)
-    df.to_csv("vacancies_joined_salary.csv", index=False)
+    df.to_csv("hh_ru_joined_salary.csv", index=False)
 
 
 if __name__ == "__main__":
