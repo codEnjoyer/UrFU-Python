@@ -130,5 +130,9 @@ def save_currencies_rates_csv(file_name: str, date_range: tuple, relevant_curren
     df.to_csv(file_name, index=False)
 
 
-if __name__ == "__main__":
+def main() -> None:
     save_currencies_rates_csv("../currencies_rates.csv", get_date_range(), get_relevant_currencies())
+
+
+if __name__ == "__main__":
+    main()
