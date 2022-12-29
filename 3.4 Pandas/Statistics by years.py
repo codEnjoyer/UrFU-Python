@@ -410,7 +410,7 @@ def get_data_by_years(df: pd.DataFrame, profession_name: str) -> dict:
 def main() -> None:
     hh_ru = "../3.3 API/hh_ru_joined_salary.csv"
     big = "vacancies_joined_salary.csv"
-    ui = UserInput(big, "Аналитик")
+    ui = UserInput(big, "Программист|IT|Senior|Middle|Junior|Аналитик")
     df = pd.read_csv(ui.file_name, dtype={"name": "str", "salary": "Int64", "area_name": "str"}, verbose=True)
     df = df.assign(published_at=df['published_at'].apply(lambda s: dt.datetime.fromisoformat(s).year).astype("int32"))
 
