@@ -44,6 +44,40 @@
         </tr>
         {% endfor %}
     </table>
+    <h2 {{ h2_style }}>Статистика по городам</h2>
+    <table {{ table_style }} border="0" cellspacing="0" cellpadding="0">
+        <colgroup>
+            <col style="width: 20%">
+            <col style="width: 20%">
+            <col style="width: 7%">
+            <col style="width: 20%">
+            <col style="width: 20%">
+        </colgroup>
+        <tr>
+            {% for header in header_city %}
+            <th {% if not header %} {{ cell_style_none }} {% else %} {{ cell_style }} {% endif %}>
+                {{ header }}
+            </th>
+            {% endfor %}
+        </tr>
+        {% for index, (salary_city, salary, ratio_city, ratio) in city_data.items() %}
+        <tr>
+            <td {{ cell_style }}>
+                {{ salary_city }}
+            </td>
+            <td {{ cell_style }}>
+                {{ salary }}
+            </td>
+            <td></td>
+            <td {{ cell_style }} }>
+                {{ ratio_city }}
+            </td>
+            <td {{ cell_style }} }>
+                {{ ratio }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
 </font>
 </body>
 </html>
