@@ -46,8 +46,9 @@ def count_salary(df: pd.DataFrame) -> list:
     """
 
     res = []
-    currencies = pd.read_csv("../currencies_rates.csv")
+    currencies = pd.read_csv("../currencies_rates.csv", verbose=True)
     for row in df.itertuples(index=False, name="Vacancy"):
+
         # print(row.salary_from)
         salary = get_processed_salary(row, currencies)
         # print(salary)
@@ -73,10 +74,10 @@ def join_salary_columns(df: pd.DataFrame, salary_values: list) -> pd.DataFrame:
 
 
 def main() -> None:
-    df = pd.read_csv("hh_ru.csv")
+    df = pd.read_csv("../vacancies_by_year.csv", verbose=True)
     salary_values = count_salary(df)
     df = join_salary_columns(df, salary_values)
-    df.to_csv("hh_ru_joined_salary.csv", index=False)
+    df.to_csv("../vacancies_by_year_joined_salary.csv", index=False)
 
 
 if __name__ == "__main__":
