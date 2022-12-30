@@ -251,3 +251,7 @@ fabric.properties
 /3.4 Pandas/vacancies_dif_currencies.csv
 /3.4 Pandas/vacancies_joined_salary.csv
 /3.4 Pandas/test.py
+/vacancies_by_year_joined_salary.csv
+/3.5 Integration with DataBase/test.py
+/3.5 Integration with DataBase/vacancies_by_year.db
+/3.5 Integration with DataBase/vacancies_dif_currencies.db
