@@ -1,6 +1,10 @@
 # UrFU-Python
-## 
-### Ссылки на Yandex.Contest
+## A python course developed at UrFU.
+### It covered the basics of syntax, functional programming, OOP, multithreading, multiprocessing, profiling, debugging and documentation. Popular libraries such as requests, pandas, numpy, matplotlib and some others were considered. Integration with the built-in sqlite3 database was also studied.
+
+
+
+### Links to Yandex.Contest (checking tasks for a teacher)
 
 #### 1.1 https://contest.yandex.ru/contest/40164/run-report/71135513/
 #### 1.2 https://contest.yandex.ru/contest/40164/run-report/71137648/
